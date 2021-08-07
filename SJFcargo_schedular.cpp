@@ -189,7 +189,7 @@ public:
 
 
     // it schedule the cargo according to their arrival time and register their port for stationing
-    // using concept of longest job first scheduling algorithms with the help of multi processor
+    // using concept of shortest job first scheduling algorithms with the help of multi processor
     // theory and parallel procesing.
     void SJFschedule(int n){
          this-> n = n;
