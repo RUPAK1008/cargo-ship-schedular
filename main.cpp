@@ -10,7 +10,6 @@
 //                                                                                      //
 //////////////////////////////////////////////////////////////////////////////////////////
 #include<bits/stdc++.h>
-// #include<>
 #include <windows.h>    //  header file for gotoxy
 #include <iostream>
 using namespace std;
@@ -130,9 +129,22 @@ public:
             // clear screen
             cargo_list[i].cargo_get();
         }
-        empty_port_settor();
+        // list according to FIFO algorithms
+        FIFOschedule(n);
+        for(int i=0;i<n;i++){
+            cargo_list[i].show_details();
+            cout<<endl;
+        }
+
+        // list according to SJF algorithms
+        SJFschedule(n);
+        for(int i=0;i<n;i++){
+            cargo_list[i].show_details();
+            cout<<endl;
+        }
+
+        // list according to LJF algorithms
         LJFschedule(n);
-        // clear screen
         for(int i=0;i<n;i++){
             cargo_list[i].show_details();
             cout<<endl;
@@ -147,14 +159,26 @@ public:
             large_port.insert(i);
         }
     }
-    // long job first sort comparator
+    // first in first out sort comparator
+    static bool compFIFO(cargo_info &a,cargo_info &b){
+        return a.get_arival_time()<b.get_arival_time();
+    }
+
+    // shortest job first sort comparator
+    static bool compSJF(cargo_info &a,cargo_info &b){
+        if(a.get_arival_time()!=b.get_arival_time())
+        return a.get_arival_time()<b.get_arival_time();
+        return a.job_time()<b.job_time();
+    }
+
+    // longest job first sort comparator
     static bool compLJF(cargo_info &a,cargo_info &b){
         if(a.get_arival_time()!=b.get_arival_time())
         return a.get_arival_time()<b.get_arival_time();
         return a.job_time()>b.job_time();
-
     }
-    // empty the port force fully funtion
+
+    // empty the port to make port available(time table)
     pair<char,int> find_cargo(char c1,char c2,queue<cargo_info> time_table){
         int dt=1e9,k=time_table.size();
         while(k>0){
@@ -189,9 +213,251 @@ public:
 
 
     // it schedule the cargo according to their arrival time and register their port for stationing
+    // using concept of first in first out scheduling algorithms with the help of multi processor
+    // theory and parallel processing.
+    void FIFOschedule(int n){
+         empty_port_settor();
+         this-> n = n;
+         queue<cargo_info> time_table;
+         sort(cargo_list,cargo_list+n,compFIFO);
+         int i=0,present_time;
+         for(int i=0;i<n;i++){
+            cargo_info temp=cargo_list[i];
+            char cargo_size=temp.cargo_size();
+            int check_time=temp.get_arival_time();
+            int k=time_table.size();
+            while(k>0){
+                k--;
+                cargo_info temp2=time_table.front();
+                time_table.pop();
+                if(temp2.get_dt()>check_time){
+                    time_table.push(temp2);
+                    continue;
+                }
+                char portS=temp2.cargo_size();
+                if(portS=='S'){
+                    int portN=temp2.get_st();
+                    small_port.insert(portN);
+                }else if(portS=='M'){
+                    int portN=temp2.get_st();
+                    medium_port.insert(portN);
+                }else if(portS=='L'){
+                    int portN=temp2.get_st();
+                    large_port.insert(portN);
+                }
+            }
+            //if it is small size cargo
+            if(cargo_size=='S'){
+                if(small_port.size()){
+                    auto port=small_port.begin();
+                    small_port.erase(port);
+                    int dt=temp.get_arival_time()+temp.job_time();
+                    cargo_list[i].dt_st_size(dt,*port,'S');
+                }else if(medium_port.size()){
+                    auto port=medium_port.begin();
+                    medium_port.erase(port);
+                    int dt=temp.get_arival_time()+temp.job_time();
+                    cargo_list[i].dt_st_size(dt,*port,'M');
+                }else{
+                    pair<char,int> p=find_cargo('S','M',time_table);
+                    if(p.first=='S'){
+                        if(small_port.size()){
+                            auto port=small_port.begin();
+                            small_port.erase(port);
+                            int dt=p.second+temp.job_time();
+                            cargo_list[i].dt_st_size(dt,*port,'S');
+                            cargo_list[i].change_arrival_time_set(p.second);
+                        }
+                    }else{
+                        if(medium_port.size()){
+                            auto port=medium_port.begin();
+                            medium_port.erase(port);
+                            int dt=p.second+temp.job_time();
+                            cargo_list[i].dt_st_size(dt,*port,'M');
+                            cargo_list[i].change_arrival_time_set(p.second);
+                        }
+                    }
+                }
+            }else
+            // if it is medium size cargo
+            if(cargo_size=='M'){
+                if(medium_port.size()){
+                    auto port=medium_port.begin();
+                    medium_port.erase(port);
+                    int dt=temp.get_arival_time()+temp.job_time();
+                    cargo_list[i].dt_st_size(dt,*port,'M');
+                }else if(large_port.size()){
+                    auto port=large_port.begin();
+                    large_port.erase(port);
+                    int dt=temp.get_arival_time()+temp.job_time();
+                    cargo_list[i].dt_st_size(dt,*port,'L');
+                }else{
+                    pair<char,int> p=find_cargo('M','L',time_table);
+                    if(p.first=='M'){
+                        if(medium_port.size()){
+                            auto port=medium_port.begin();
+                            medium_port.erase(port);
+                            int dt=p.second+temp.job_time();
+                            cargo_list[i].dt_st_size(dt,*port,'M');
+                            cargo_list[i].change_arrival_time_set(p.second);
+                        }
+                    }else{
+                        if(large_port.size()){
+                            auto port=large_port.begin();
+                            large_port.erase(port);
+                            int dt=p.second+temp.job_time();
+                            cargo_list[i].dt_st_size(dt,*port,'L');
+                            cargo_list[i].change_arrival_time_set(p.second);
+                        }
+                    }
+                }
+            }else
+            // if it is large size cargo
+            if(cargo_size=='L'){
+                if(large_port.size()){
+                    auto port=large_port.begin();
+                    large_port.erase(port);
+                    int dt=temp.get_arival_time()+temp.job_time();
+                    cargo_list[i].dt_st_size(dt,*port,'L');
+                }else{
+                    pair<char,int> p=find_cargo('L','L',time_table);
+                    if(large_port.size()){
+                        auto port=large_port.begin();
+                        large_port.erase(port);
+                        int dt=p.second+temp.job_time();
+                        cargo_list[i].dt_st_size(dt,*port,'L');
+                        cargo_list[i].change_arrival_time_set(p.second);
+                    }
+                }
+            }
+         }
+     }
+
+    // it schedule the cargo according to their arrival time and register their port for stationing
+    // using concept of shortest job first scheduling algorithms with the help of multi processor
+    // theory and parallel processing.
+    void SJFschedule(int n){
+         empty_port_settor();
+         this-> n = n;
+         queue<cargo_info> time_table;
+         sort(cargo_list,cargo_list+n,compSJF);
+         int i=0,present_time;
+         for(int i=0;i<n;i++){
+            cargo_info temp=cargo_list[i];
+            char cargo_size=temp.cargo_size();
+            int check_time=temp.get_arival_time();
+            int k=time_table.size();
+            while(k>0){
+                k--;
+                cargo_info temp2=time_table.front();
+                time_table.pop();
+                if(temp2.get_dt()>check_time){
+                    time_table.push(temp2);
+                    continue;
+                }
+                char portS=temp2.cargo_size();
+                if(portS=='S'){
+                    int portN=temp2.get_st();
+                    small_port.insert(portN);
+                }else if(portS=='M'){
+                    int portN=temp2.get_st();
+                    medium_port.insert(portN);
+                }else if(portS=='L'){
+                    int portN=temp2.get_st();
+                    large_port.insert(portN);
+                }
+            }
+            //if it is small size cargo
+            if(cargo_size=='S'){
+                if(small_port.size()){
+                    auto port=small_port.begin();
+                    small_port.erase(port);
+                    int dt=temp.get_arival_time()+temp.job_time();
+                    cargo_list[i].dt_st_size(dt,*port,'S');
+                }else if(medium_port.size()){
+                    auto port=medium_port.begin();
+                    medium_port.erase(port);
+                    int dt=temp.get_arival_time()+temp.job_time();
+                    cargo_list[i].dt_st_size(dt,*port,'M');
+                }else{
+                    pair<char,int> p=find_cargo('S','M',time_table);
+                    if(p.first=='S'){
+                        if(small_port.size()){
+                            auto port=small_port.begin();
+                            small_port.erase(port);
+                            int dt=p.second+temp.job_time();
+                            cargo_list[i].dt_st_size(dt,*port,'S');
+                            cargo_list[i].change_arrival_time_set(p.second);
+                        }
+                    }else{
+                        if(medium_port.size()){
+                            auto port=medium_port.begin();
+                            medium_port.erase(port);
+                            int dt=p.second+temp.job_time();
+                            cargo_list[i].dt_st_size(dt,*port,'M');
+                            cargo_list[i].change_arrival_time_set(p.second);
+                        }
+                    }
+                }
+            }else
+            // if it is medium size cargo
+            if(cargo_size=='M'){
+                if(medium_port.size()){
+                    auto port=medium_port.begin();
+                    medium_port.erase(port);
+                    int dt=temp.get_arival_time()+temp.job_time();
+                    cargo_list[i].dt_st_size(dt,*port,'M');
+                }else if(large_port.size()){
+                    auto port=large_port.begin();
+                    large_port.erase(port);
+                    int dt=temp.get_arival_time()+temp.job_time();
+                    cargo_list[i].dt_st_size(dt,*port,'L');
+                }else{
+                    pair<char,int> p=find_cargo('M','L',time_table);
+                    if(p.first=='M'){
+                        if(medium_port.size()){
+                            auto port=medium_port.begin();
+                            medium_port.erase(port);
+                            int dt=p.second+temp.job_time();
+                            cargo_list[i].dt_st_size(dt,*port,'M');
+                            cargo_list[i].change_arrival_time_set(p.second);
+                        }
+                    }else{
+                        if(large_port.size()){
+                            auto port=large_port.begin();
+                            large_port.erase(port);
+                            int dt=p.second+temp.job_time();
+                            cargo_list[i].dt_st_size(dt,*port,'L');
+                            cargo_list[i].change_arrival_time_set(p.second);
+                        }
+                    }
+                }
+            }else
+            // if it is large size cargo
+            if(cargo_size=='L'){
+                if(large_port.size()){
+                    auto port=large_port.begin();
+                    large_port.erase(port);
+                    int dt=temp.get_arival_time()+temp.job_time();
+                    cargo_list[i].dt_st_size(dt,*port,'L');
+                }else{
+                    pair<char,int> p=find_cargo('L','L',time_table);
+                    if(large_port.size()){
+                        auto port=large_port.begin();
+                        large_port.erase(port);
+                        int dt=p.second+temp.job_time();
+                        cargo_list[i].dt_st_size(dt,*port,'L');
+                        cargo_list[i].change_arrival_time_set(p.second);
+                    }
+                }
+            }
+        }
+     }
+    // it schedule the cargo according to their arrival time and register their port for stationing
     // using concept of longest job first scheduling algorithms with the help of multi processor
-    // theory and parallel procesing.
+    // theory and parallel processing.
     void LJFschedule(int n){
+         empty_port_settor();
          this-> n = n;
          queue<cargo_info> time_table;
          sort(cargo_list,cargo_list+n,compLJF);
@@ -307,6 +573,7 @@ public:
             }
          }
      }
+
 };
 
 COORD CursorPosition;
