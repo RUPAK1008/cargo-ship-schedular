@@ -147,7 +147,7 @@ public:
             large_port.insert(i);
         }
     }
-    // long job first sort comparator
+    // first in first out sort comparator
     static bool compFIFO(cargo_info &a,cargo_info &b){
         return a.get_arival_time()<b.get_arival_time();
     }
