@@ -1,0 +1,6 @@
+# depslib dependency file v1.0
+1628321156 source:c:\users\hp-pc\desktop\test\cargo\main.cpp
+	<bits/stdc++.h>
+	<windows.h>
+	<iostream>
+
