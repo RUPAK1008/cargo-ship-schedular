@@ -147,7 +147,7 @@ public:
             large_port.insert(i);
         }
     }
-    // long job first sort comparator
+    // longest job first sort comparator
     static bool compLJF(cargo_info &a,cargo_info &b){
         if(a.get_arival_time()!=b.get_arival_time())
         return a.get_arival_time()<b.get_arival_time();
